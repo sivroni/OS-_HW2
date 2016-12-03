@@ -11,7 +11,7 @@
 #include <sys/time.h>
 #include <signal.h>
 
-#define FILEPATH "/tmp/osfifo5" //TODO change name of file!!
+#define FILEPATH "/tmp/osfifo" 
 #define PERMISSION 0600
 #define char_a "a"
 #define BYTE_SIZE 1
@@ -23,12 +23,16 @@ int main(int argc, char *argv[]){
 	int i; // for loop index
 	char str_a [BYTE_SIZE]; // 'a' string
 
+	signal(SIGINT, SIG_IGN); // ignore SIGINT during operation
+
 	if (argc != 2){ // check valid number of arguments
 		printf("Not enough arguments eneterd. Exiting...\n");
 		return -1;
 	}
 
 	int NUM = atoi(argv[1]); // number of bytes to transfer
+
+	
 	//create pipe 
 	if ( mkfifo(FILEPATH, PERMISSION) < 0){
 		printf("Error creating fifo file: %s\n", strerror(errno));
@@ -63,6 +67,7 @@ int main(int argc, char *argv[]){
 		}
    
 	}
+	printf("After loop\n");
 
 	// finish time
 	if (gettimeofday(&t2, NULL) <0){
@@ -85,6 +90,8 @@ int main(int argc, char *argv[]){
 		return -1;
 	}
 	//TODO what to de during cleanup?
+	close(fd);
+	signal(SIGINT, SIG_DFL); // restore SIGINT in cleanup
 	exit(0);
 }
 
