@@ -12,6 +12,7 @@
 #include <signal.h>
 
 #define FILEPATH "/tmp/mmapped.bin"
+#define PERMISSION 0600
 
 int main(int argc, char *argv[]) {
 	char * ptr_to_map; // will use during mmap
@@ -27,14 +28,22 @@ int main(int argc, char *argv[]) {
 	}
 	return 0;
 	
+	signal(SIGTERM, SIG_IGN); // ignore SIGTERM during operation
+
 	int NUM = atoi(argv[1]); // number of bytes to transfer
 	int RPID = atoi(argv[2]); // process id thats running mmap_reader
 	
 	// open file with permission 0600 = owner can read and write
-	fd = open(FILEPATH, O_RDWR | O_CREAT, 0600);
+	fd = open(FILEPATH, O_RDWR | O_CREAT);
 	if (-1 == fd) {
 		printf("Error opening file for writing: %s\n", strerror(errno));
 		return -1;
+	}
+
+	if (chmod(FILEPATH, PERMISSION) <0 ){
+		printf("Error while changing permissions: %s\n", strerror(errno));
+		close(fd);
+		return -1;	
 	}
 	// Force the file to be of the same size as the (mmapped) array
 	result = lseek(fd, NUM-1, SEEK_SET);
@@ -95,11 +104,12 @@ int main(int argc, char *argv[]) {
 	
 	// don't forget to free the mmapped memory
 	// this also ensures the changes commit to the file
-	if (-1 == munmap(ptr_to_map, NUM)) {
+	//TODO maybe we done need munmap?
+	/*if (-1 == munmap(ptr_to_map, NUM)) {
 		printf("Error un-mmapping the file: %s\n", strerror(errno));
 		close(fd);
 		return -1;
-	}
+	}*/
 	close(fd);
 
 	// calculate elapsed time
@@ -107,7 +117,7 @@ int main(int argc, char *argv[]) {
 	elapsed_microsec += (t2.tv_usec - t1.tv_usec) * 1000.0;
 
 	printf("Time elapsed is %f, and number of bytes written are: %d", elapsed_microsec, NUM);
-
+	signal(SIGTERM, SIG_DFL); // restore SIGTERM in cleanup
 	return 0;
 }
 

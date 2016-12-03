@@ -14,6 +14,12 @@
 #define FILEPATH "/tmp/mmapped.bin"
 #define BYTE_SIZE 1
 #define char_a "a"
+#define PERMISSION 0600
+
+/////// headers: ////////
+void my_signal_handler (int);
+
+////////////////////////
 
 // Signal handler.
 // Simulate some processing and finish
@@ -30,11 +36,17 @@ void my_signal_handler (int signum) {
 	char str_a [BYTE_SIZE]; // 'a' string
 
 	// open file with permission 0600 = owner can read and write
-	fd = open(FILEPATH, O_RDWR | O_CREAT, 0600);
+	fd = open(FILEPATH, O_RDWR | O_CREAT);
 	if (-1 == fd) {
 		printf("Error opening file for writing: %s\n", strerror(errno));
 		return -1;
-	} 
+	}
+ 
+	if (chmod(FILEPATH, PERMISSION) <0 ){ // maybe un
+		printf("Error while changing permissions: %s\n", strerror(errno));
+		close(fd);
+		return -1;	
+	}
 
 	if (stat(FILEPATH, &st) < 0){
 		close(fd);
@@ -58,14 +70,17 @@ void my_signal_handler (int signum) {
 		close(fd);
 		return -1;
   	}
-	strcpy(str_a, char_a); //TODO check return value
+	
+	// count number of 'a' bytes written
+	strcpy(str_a, char_a); 
 	count = 0;
 	while (( read_result = read(fd,buffer, BYTE_SIZE) )>0){
 		if (strcmp(buffer,char_a))
 			count++;
 	}
+	count++; //TODO verify that [count = all bytes including NULL] 
 	
-	if (read_result < 0){ // didnt exit loop because of EOF - error
+	if (read_result < 0){ // didnt exit loop because of EOF - indicates error
 		printf("Error reading file: %s\n", strerror(errno));
 		munmap(ptr_to_map, NUM);
 		close(fd);
@@ -95,12 +110,16 @@ void my_signal_handler (int signum) {
 		//TODO free mmap + close file (maybe delete?)
 		return -1;
 	}
+	//TODO check if the following deleted section is necessary
+/*
 	if (-1 == munmap(ptr_to_map, NUM)) {
 		printf("Error un-mmapping the file: %s\n", strerror(errno));
 		close(fd);
 		return -1;
 	}
+*/
 	close(fd);
+	signal(SIGTERM, SIG_DFL); // restore SIGTERM in cleanup
 	exit(0);
 }
 
@@ -126,11 +145,11 @@ int main (void){
 		return -1;
 	}
 
-
+	signal(SIGTERM, SIG_IGN); // ignore SIGTERM during operation
 	// Meditate untill killed
 	while(1) {
 		sleep(2);
-		printf("Process runs.\n");
+	//	printf("Process runs.\n"); //TODO delete
 	}
 	return 0;
 }
