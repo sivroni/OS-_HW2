@@ -21,12 +21,11 @@ int main(int argc, char *argv[]) {
 	struct timeval t1, t2; // time measurment structure
 	double elapsed_microsec; // measurment
 	int i; // for loop index
-
+	
 	if (argc != 3){ // check valid number of arguments
 		printf("Not enough arguments eneterd. Exiting...\n");
 		return -1;
 	}
-	return 0;
 	
 	signal(SIGTERM, SIG_IGN); // ignore SIGTERM during operation
 
@@ -45,6 +44,7 @@ int main(int argc, char *argv[]) {
 		close(fd);
 		return -1;	
 	}
+
 	// Force the file to be of the same size as the (mmapped) array
 	result = lseek(fd, NUM-1, SEEK_SET);
 	if (-1 == result) {
@@ -89,22 +89,23 @@ int main(int argc, char *argv[]) {
 		printf("Error killing the reader process: %s\n", strerror(errno));
 		munmap(ptr_to_map, NUM);
 		close(fd);
-		//TODO free mmap + close file (maybe delete?)
 		return -1;
 	}
+
+	printf("Process killed!\n");
 
 	// finish time
 	if (gettimeofday(&t2, NULL) <0){
 		printf("Error starting time: %s\n", strerror(errno));
 		munmap(ptr_to_map, NUM);
 		close(fd);
-		//TODO free mmap + close file (maybe delete?)
 		return -1;
 	}
 	
 	// don't forget to free the mmapped memory
 	// this also ensures the changes commit to the file
-	//TODO maybe we done need munmap?
+
+	//TODO maybe we do need munmap?
 	/*if (-1 == munmap(ptr_to_map, NUM)) {
 		printf("Error un-mmapping the file: %s\n", strerror(errno));
 		close(fd);
@@ -116,7 +117,7 @@ int main(int argc, char *argv[]) {
 	elapsed_microsec = (t2.tv_sec - t1.tv_sec) * 1000.0;
 	elapsed_microsec += (t2.tv_usec - t1.tv_usec) * 1000.0;
 
-	printf("Time elapsed is %f, and number of bytes written are: %d", elapsed_microsec, NUM);
+	printf("WRITER: Time elapsed is %f, and number of bytes written are: %d\n", elapsed_microsec, NUM);
 	signal(SIGTERM, SIG_DFL); // restore SIGTERM in cleanup
 	return 0;
 }

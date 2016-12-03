@@ -17,7 +17,7 @@
 #define PERMISSION 0600
 
 /////// headers: ////////
-void my_signal_handler (int);
+ void my_signal_handler (int);
 
 ////////////////////////
 
@@ -29,46 +29,47 @@ void my_signal_handler (int signum) {
 	double elapsed_microsec; // measurment
 	struct stat st;  // stat struct for file
 	char * ptr_to_map; // will use during mmap
-	int fileSize;
+	int fileSize; // determine file size using stat
 	int read_result; // read result
 	char buffer[BYTE_SIZE]; /* string from input file */
-	int counter; // count number of 'a' occurences
+	int count; // count number of 'a' occurences
 	char str_a [BYTE_SIZE]; // 'a' string
 
 	// open file with permission 0600 = owner can read and write
 	fd = open(FILEPATH, O_RDWR | O_CREAT);
 	if (-1 == fd) {
 		printf("Error opening file for writing: %s\n", strerror(errno));
-		return -1;
+		return;
 	}
  
-	if (chmod(FILEPATH, PERMISSION) <0 ){ // maybe un
+	if (chmod(FILEPATH, PERMISSION) <0 ){ //TODO maybe unnecessery?
 		printf("Error while changing permissions: %s\n", strerror(errno));
 		close(fd);
-		return -1;	
+		return;
 	}
 
 	if (stat(FILEPATH, &st) < 0){
 		close(fd);
 		printf("Signal handle registration failed. %s\n",strerror(errno));
-		return -1;
+		return;
 	}
+
         fileSize = st.st_size;
 	
 	// start time
 	if (gettimeofday(&t1, NULL) <0){
 		printf("Error starting time: %s\n", strerror(errno));
 		close(fd);
-		return -1;
+		return;
 	}
 
-	// create mapping + set pointer to the start of file (offset = 0)
+	// create mapping + set pointer to the start of file (offset == 0)
 	ptr_to_map = (char*) mmap(NULL, fileSize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 
 	if (MAP_FAILED == ptr_to_map) { // mmap failed
 		printf("Error mmapping the file: %s\n", strerror(errno));
 		close(fd);
-		return -1;
+		return;
   	}
 	
 	// count number of 'a' bytes written
@@ -78,46 +79,42 @@ void my_signal_handler (int signum) {
 		if (strcmp(buffer,char_a))
 			count++;
 	}
-	count++; //TODO verify that [count = all bytes including NULL] 
 	
 	if (read_result < 0){ // didnt exit loop because of EOF - indicates error
 		printf("Error reading file: %s\n", strerror(errno));
-		munmap(ptr_to_map, NUM);
+		munmap(ptr_to_map, fileSize);
 		close(fd);
-		//TODO free mmap + close file (maybe delete?)
-		return -1;
+		return;
 	}
 
 	// finish time
 	if (gettimeofday(&t2, NULL) <0){
 		printf("Error starting time: %s\n", strerror(errno));
-		munmap(ptr_to_map, NUM);
+		munmap(ptr_to_map, fileSize);
 		close(fd);
-		//TODO free mmap + close file (maybe delete?)
-		return -1;
+		return;
 	}
 
 	// calculate elapsed time
 	elapsed_microsec = (t2.tv_sec - t1.tv_sec) * 1000.0;
 	elapsed_microsec += (t2.tv_usec - t1.tv_usec) * 1000.0;
 
-	printf("Time elapsed is %f, and number of 'a' bytes in file are: %d", elapsed_microsec, count);
+	printf("READER: Time elapsed is %f, and number of 'a' bytes in file are: %d\n", elapsed_microsec, count);
 	
 	if (unlink(FILEPATH) <0){
 		printf("Error unlinking file from memory: %s\n", strerror(errno));
-		munmap(ptr_to_map, NUM);
+		munmap(ptr_to_map, fileSize);
 		close(fd);
-		//TODO free mmap + close file (maybe delete?)
-		return -1;
+		return;
 	}
 	//TODO check if the following deleted section is necessary
-/*
-	if (-1 == munmap(ptr_to_map, NUM)) {
+
+	if (-1 == munmap(ptr_to_map, fileSize)) {
 		printf("Error un-mmapping the file: %s\n", strerror(errno));
 		close(fd);
-		return -1;
+		return;
 	}
-*/
+
 	close(fd);
 	signal(SIGTERM, SIG_DFL); // restore SIGTERM in cleanup
 	exit(0);
@@ -129,9 +126,9 @@ void my_signal_handler (int signum) {
 // 1. register SIGUSR1 signal handler
 // 2. go to infinite loop of printing a message every 2 seconds
 int main (void){
-	
-	struct sigaction new_action; // Structure to pass to the registration syscall -used to change the action taken by a
-	//process on receipt of a specific signal
+	// Structure to pass to the registration syscall - 
+	// used to change the action taken by a process on receipt of a specific signal
+	struct sigaction new_action; 
 
 	// Assign pointer to our handler function
 	new_action.sa_handler = my_signal_handler;
@@ -146,11 +143,13 @@ int main (void){
 	}
 
 	signal(SIGTERM, SIG_IGN); // ignore SIGTERM during operation
+
 	// Meditate untill killed
 	while(1) {
 		sleep(2);
-	//	printf("Process runs.\n"); //TODO delete
+		
 	}
+	printf("Exiting mmap_reader... \n");
 	return 0;
 }
 
