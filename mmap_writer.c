@@ -13,6 +13,7 @@
 
 #define FILEPATH "/tmp/mmapped.bin"
 #define PERMISSION 0600
+#define char_a 'a'
 
 int main(int argc, char *argv[]) {
 	char * ptr_to_map; // will use during mmap
@@ -24,7 +25,7 @@ int main(int argc, char *argv[]) {
 	
 	if (argc != 3){ // check valid number of arguments
 		printf("Not enough arguments eneterd. Exiting...\n");
-		return -1;
+		exit(-1);
 	}
 	
 	signal(SIGTERM, SIG_IGN); // ignore SIGTERM during operation
@@ -36,13 +37,13 @@ int main(int argc, char *argv[]) {
 	fd = open(FILEPATH, O_RDWR | O_CREAT);
 	if (-1 == fd) {
 		printf("Error opening file for writing: %s\n", strerror(errno));
-		return -1;
+		exit(errno);
 	}
 
 	if (chmod(FILEPATH, PERMISSION) <0 ){
 		printf("Error while changing permissions: %s\n", strerror(errno));
 		close(fd);
-		return -1;	
+		exit(errno);
 	}
 
 	// Force the file to be of the same size as the (mmapped) array
@@ -50,7 +51,7 @@ int main(int argc, char *argv[]) {
 	if (-1 == result) {
 		printf("Error calling lseek() to 'stretch' the file: %s\n", strerror(errno));
 		close(fd);
-		return -1;
+		exit(errno);
 	}
 
 	// Something has to be written at the end of the file,
@@ -59,7 +60,7 @@ int main(int argc, char *argv[]) {
 	if (1 != result) {
 		printf("Error writing last byte of the file: %s\n", strerror(errno));
 		close(fd);
-		return -1;
+		exit(errno);
 	}
 
 	// create mapping + set pointer to the start of file (offset = 0)
@@ -68,7 +69,7 @@ int main(int argc, char *argv[]) {
 	if (MAP_FAILED == ptr_to_map) { // mmap failed
 		printf("Error mmapping the file: %s\n", strerror(errno));
 		close(fd);
-		return -1;
+		exit(errno);
   	}
 
 	// start time
@@ -76,11 +77,11 @@ int main(int argc, char *argv[]) {
 		printf("Error starting time: %s\n", strerror(errno));
 		munmap(ptr_to_map, NUM);
 		close(fd);
-		return -1;
+		exit(errno);
 	}
 	// now write to the file as if it were memory 'a' X (NUM-1)
 	for (i = 0; i < NUM-1 ; ++i) {
-		ptr_to_map[i] = 'a';
+		ptr_to_map[i] = char_a;
    
 	}
 	ptr_to_map[NUM-1] = '\0'; // last char is NULL
@@ -92,14 +93,12 @@ int main(int argc, char *argv[]) {
 		return -1;
 	}
 
-	printf("Process killed!\n");
-
 	// finish time
 	if (gettimeofday(&t2, NULL) <0){
 		printf("Error starting time: %s\n", strerror(errno));
 		munmap(ptr_to_map, NUM);
 		close(fd);
-		return -1;
+		exit(errno);
 	}
 	
 	// don't forget to free the mmapped memory
@@ -119,7 +118,7 @@ int main(int argc, char *argv[]) {
 
 	printf("WRITER: Time elapsed is %f, and number of bytes written are: %d\n", elapsed_microsec, NUM);
 	signal(SIGTERM, SIG_DFL); // restore SIGTERM in cleanup
-	//return 0;
+	
 	exit(0);
 }
 
