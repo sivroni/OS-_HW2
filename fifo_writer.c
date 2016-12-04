@@ -11,7 +11,7 @@
 #include <sys/time.h>
 #include <signal.h>
 
-#define FILEPATH "/tmp/osfifo10" 
+#define FILEPATH "/tmp/osfifo" 
 #define PERMISSION 0600
 #define char_a "a"
 #define BYTE_SIZE 1
@@ -28,7 +28,7 @@ int main(int argc, char *argv[]){
 
 	if (argc != 2){ // check valid number of arguments
 		printf("Not enough arguments eneterd. Exiting...\n");
-		return -1;
+		exit(-1);
 	}
 
 	int NUM = atoi(argv[1]); // number of bytes to transfer
@@ -37,7 +37,7 @@ int main(int argc, char *argv[]){
 	//create pipe 
 	if ( mkfifo(FILEPATH, PERMISSION) < 0){
 		printf("Error creating fifo file: %s\n", strerror(errno));
-		return -1;
+		exit(errno);
 	}
 	
 	// open file - writing only
@@ -46,7 +46,7 @@ int main(int argc, char *argv[]){
 		printf("Error opening file for writing: %s\n", strerror(errno));
 		//TODO delete fifo?
 		unlink(FILEPATH);
-		return -1;
+		exit(errno);
 	}
 	printf("opened file for writing...\n");
 	// start time
@@ -55,7 +55,7 @@ int main(int argc, char *argv[]){
 		//TODO delete fifo?
 		close(fd);
 		unlink(FILEPATH);
-		return -1;
+		exit(errno);
 	}
 
 	strcpy(str_a, char_a); 
@@ -67,7 +67,7 @@ int main(int argc, char *argv[]){
 			//TODO delete fifo?
 			close(fd);
 			unlink(FILEPATH);
-			return -1;
+			exit(errno);
 		}
    
 	}
@@ -78,7 +78,7 @@ int main(int argc, char *argv[]){
 		//TODO delete fifo?
 		close(fd);
 		unlink(FILEPATH);
-		return -1;
+		exit(errno);
 	}
 
 	// calculate elapsed time
@@ -92,7 +92,7 @@ int main(int argc, char *argv[]){
 		printf("Error unlinking file from memory: %s\n", strerror(errno));
 		//TODO delete fifo?
 		close(fd);
-		return -1;
+		exit(errno);
 	}
 	//TODO what to de during cleanup?
 	

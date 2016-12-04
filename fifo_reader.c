@@ -11,10 +11,11 @@
 #include <sys/time.h>
 #include <signal.h>
 
-#define FILEPATH "/tmp/osfifo10" 
+#define FILEPATH "/tmp/osfifo" 
 #define char_a "a"
 #define PERMISSION 0600
 #define BYTE_SIZE 1
+#define SECONDS_TO_WAIT 2
 
 int main(void){
 	int fd; // file
@@ -25,13 +26,15 @@ int main(void){
 	char str_a [BYTE_SIZE]; // 'a' string
 	int read_result; // for read func - return value
 
+	sleep(SECONDS_TO_WAIT); // in order for fifo_writer to mkfifo!
+
 	//signal(SIGINT, SIG_IGN); // ignore SIGTERM during operation
 
 	// open file - reading only
 	fd = open(FILEPATH, O_RDONLY );
 	if (-1 == fd) {
 		printf("Error opening file for reading: %s\n", strerror(errno));
-		return -1;
+		exit(errno);
 	}
 
 	// start time
@@ -39,7 +42,7 @@ int main(void){
 		printf("Error starting time: %s\n", strerror(errno));
 		//TODO delete fifo?
 		close(fd);
-		return -1;
+		exit(errno);
 	}
 
 	strcpy(str_a, char_a); 
@@ -53,7 +56,7 @@ int main(void){
 		printf("Error reading file: %s\n", strerror(errno));
 		//TODO delete fifo?
 		close(fd);
-		return -1;
+		exit(errno);
 	}
 
 	// finish time
@@ -61,7 +64,7 @@ int main(void){
 		printf("Error starting time: %s\n", strerror(errno));
 		//TODO delete fifo?
 		close(fd);
-		return -1;
+		exit(errno);
 	}
 
 	// calculate elapsed time
@@ -78,6 +81,4 @@ int main(void){
 	exit(0);
 
 }
-/*
 
-*/
