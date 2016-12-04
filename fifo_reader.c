@@ -11,8 +11,9 @@
 #include <sys/time.h>
 #include <signal.h>
 
-#define FILEPATH "/tmp/osfifo" 
+#define FILEPATH "/tmp/osfifo10" 
 #define char_a "a"
+#define PERMISSION 0600
 #define BYTE_SIZE 1
 
 int main(void){
@@ -24,7 +25,7 @@ int main(void){
 	char str_a [BYTE_SIZE]; // 'a' string
 	int read_result; // for read func - return value
 
-	signal(SIGINT, SIG_IGN); // ignore SIGTERM during operation
+	//signal(SIGINT, SIG_IGN); // ignore SIGTERM during operation
 
 	// open file - reading only
 	fd = open(FILEPATH, O_RDONLY );
@@ -68,9 +69,13 @@ int main(void){
 	elapsed_microsec += (t2.tv_usec - t1.tv_usec) * 1000.0;
 
 	printf("READER: Time elapsed is %f, and number of 'a' bytes in file are: %d\n", elapsed_microsec, count);
-	signal(SIGINT, SIG_DFL); // restore SIGINT in cleanup
-	//close(fd);
-	return 0;
+
+	//signal(SIGINT, SIG_DFL); // restore SIGINT in cleanup
+
+	close(fd);
+	
+	//return 0;
+	exit(0);
 
 }
 /*
