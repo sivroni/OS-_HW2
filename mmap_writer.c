@@ -119,6 +119,7 @@ int main(int argc, char *argv[]) {
 
 	printf("WRITER: Time elapsed is %f, and number of bytes written are: %d\n", elapsed_microsec, NUM);
 	signal(SIGTERM, SIG_DFL); // restore SIGTERM in cleanup
-	return 0;
+	//return 0;
+	exit(0);
 }
 
