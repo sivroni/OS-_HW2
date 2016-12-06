@@ -62,6 +62,7 @@ int main(void){
 			if ( buffer[i] == char_a ){
 				count++;
 			}
+		//	if (i==3) exit(0);//TODO new
 		}
 	}
 

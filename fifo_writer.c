@@ -46,7 +46,7 @@ int main(int argc, char *argv[]){
 	struct sigaction sa; // to handle SIGINT, SIGPIPE
 	int bytesLeftToWrite;
 	int toWrite; // how much to write in current iteration
-
+	printf("enters writer...\n");
 	sa.sa_handler = pipe_handler;
 	// Signals - first entered here
 	if (sigaction(SIGINT, &sa, NULL) == -1) {
@@ -58,7 +58,7 @@ int main(int argc, char *argv[]){
 		printf("Error while defining SIGPIPE: %s\n", strerror(errno));
 		exit(errno);
 	}
-
+	//sleep(SECONDS_TO_WAIT);  //TODO delete!
 	if (argc != 2){ // check valid number of arguments
 		printf("Not enough arguments eneterd. Exiting...\n");
 		exit(-1);
