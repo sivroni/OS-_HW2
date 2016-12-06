@@ -14,18 +14,50 @@
 #define FILEPATH "/tmp/osfifo" 
 #define PERMISSION 0600
 #define char_a 'a'
-#define END_BYTE '\0'
+#define END_BYTE "\0"
 #define BUFF_SIZE 2048
 
+// Global variables:
+int fd; // create pipe file
+
+// headers:
+void pipe_handler(int);
+
+// signal handler for sigpipe - exit gracefully + cleanup !
+void pipe_handler(int signal) {
+	if (signal == SIGPIPE) {
+		printf("Handling SIGPIPE and exiting program: %s\n", strerror(errno));
+		close(fd);
+		//TODO print seconds + num of bytes written
+		if (unlink(FILEPATH) < 0)
+			printf("Error unlinking file from memory: %s\n", strerror(errno));
+		exit(0);
+	}
+}
+
 int main(int argc, char *argv[]){
-	int fd; // create pipe file
+	//int fd; // create pipe file -- GLOBAL VAR
 	struct timeval t1, t2; // time measurment structure
 	double elapsed_microsec; // measurment
 	int i; // for loop index
-	int write_result;
-	char buffer[BUFF_SIZE]; // string containing 'a'-s
-	int iterations;
-	//signal(SIGINT, SIG_IGN); // ignore SIGINT during operation
+	int write_result; // result from write function
+	char buffer[BUFF_SIZE]; // string to write in fd
+	char last[1] = END_BYTE; // last byte in fd
+	struct sigaction sa; // to handle SIGINT, SIGPIPE
+	int bytesLeftToWrite;
+	int toWrite; // how much to write in current iteration
+
+	sa.sa_handler = pipe_handler;
+	// Signals - first entered here
+	if (sigaction(SIGINT, &sa, NULL) == -1) {
+		printf("Error while defining SIGINT: %s\n", strerror(errno));
+		exit(errno);
+	}
+	// SIGPIPE = the file has no reader
+	if (sigaction(SIGPIPE, &sa, NULL) == -1) {
+		printf("Error while defining SIGPIPE: %s\n", strerror(errno));
+		exit(errno);
+	}
 
 	if (argc != 2){ // check valid number of arguments
 		printf("Not enough arguments eneterd. Exiting...\n");
@@ -33,15 +65,6 @@ int main(int argc, char *argv[]){
 	}
 
 	int NUM = atoi(argv[1]); // number of bytes to transfer
-
-	// create a size NUM buffer
-/*	char buffer [NUM];
-	for (i=0; i< NUM-1; i++){
-		buffer[i] = char_a;
-	}
-		
-	buffer[NUM-1] = END_BYTE;*/
-	
 
 	//create pipe 
 	if ( mkfifo(FILEPATH, PERMISSION) < 0){
@@ -66,42 +89,39 @@ int main(int argc, char *argv[]){
 	}
 
 
-//TODO change to one write!!
-	// now write to the file as if it were memory 'a' X (NUM)
-/*	for (i = 0; i < NUM ; ++i) {
-		if ( write(fd, str_a, BYTE_SIZE) < 0 ){
-			printf("Error writing to pipe file: %s\n", strerror(errno));
-			//TODO delete fifo?
-			close(fd);
-			unlink(FILEPATH);
-			exit(errno);
-		}
-   
-	}*/
-	int bytesLeftToWrite = NUM;
+	bytesLeftToWrite = NUM;
+	toWrite = 0;
 	while ( bytesLeftToWrite > 0 ){
 		
-		for (i = 0; i < BUFF_SIZE; i++){ // // fill buffer with 'a'-s
+		if (bytesLeftToWrite<BUFF_SIZE){ // last buffer to write
+			toWrite = bytesLeftToWrite;
+			
+		}
+		else{
+			toWrite = BUFF_SIZE;
+		}
+
+		for (i = 0; i < toWrite; i++){ // fill buffer with 'a'-s
 			buffer[i] = char_a;		
 		}
 
-		if( (write_result = write(fd,buffer, BUFF_SIZE) ) > 0 ){
+		if( (write_result = write(fd,buffer, toWrite) ) > 0 ){
 			bytesLeftToWrite = bytesLeftToWrite - write_result;
 		}
-		else 
-			break;
+		if (bytesLeftToWrite<BUFF_SIZE){ // last buffer to write
+			write_result = write(fd,last, 1);
+		}
+		
 	}
-	buffer[write_result-1] = END_BYTE;
+		
+	// check for errors in writing
+	if (write_result < 0){
+		printf("Error while writing: %s\n", strerror(errno));
+		close(fd);
+		unlink(FILEPATH);
+		exit(errno);
+	}
 
-// len = read
-//v counter +len = how much i succeed
-//
-/*	if ( write(fd, buffer, NUM) < 0 ){
-			printf("Error writing to pipe file: %s\n", strerror(errno));
-			close(fd);
-			unlink(FILEPATH);
-			exit(errno);
-		}*/
 
 	// finish time
 	if (gettimeofday(&t2, NULL) <0){
@@ -118,13 +138,12 @@ int main(int argc, char *argv[]){
 	printf("%d were written in %f microseconds through FIFO\n", NUM, elapsed_microsec);
 
 	close(fd);
-	if (unlink(FILEPATH) < 0){
+	if (unlink(FILEPATH) < 0){ 
 		printf("Error unlinking file from memory: %s\n", strerror(errno));
 		close(fd);
 		exit(errno);
 	}
 	
-	//signal(SIGINT, SIG_DFL); // restore SIGINT in cleanup
 	
 	exit(0);
 
