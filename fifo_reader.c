@@ -17,13 +17,13 @@
 #define SECONDS_TO_WAIT 4
 #define BUFF_SIZE 2048
 
-
 int main(void){
 	int fd; // file
-	struct timeval t1, t2; // time measurment structure
+	struct timeval t1_reader, t2_reader; // time measurment structure
+	int count_reader; // count number of 'a' occurences
 	double elapsed_microsec; // measurment
 	char buffer[BUFF_SIZE]; // string containing 'a'-s
-	int count; // count number of 'a' occurences
+	//int count; // count number of 'a' occurences
 	int read_result; // for read func - return value
 	int i;
 	struct sigaction sa, prev; // to handle SIGINT	
@@ -48,25 +48,24 @@ int main(void){
 
 	printf("after 'reading'\n");
 	// start time
-	if (gettimeofday(&t1, NULL) <0){
+	if (gettimeofday(&t1_reader, NULL) <0){
 		printf("Error starting time: %s\n", strerror(errno));
 		close(fd);
 		exit(errno);
 	}
 
-	count = 0;
+	count_reader = 0;
 	
 	while (( read_result = read(fd,buffer, BUFF_SIZE) ) > 0 ){
-		//printf("bytes read:%d\n",read_result);
-		for (i = 0; i < read_result; i++){ // for each byte read - if its 'a' then count ++
+		for (i = 0; i < read_result; i++){ // for each byte read - if its 'a' then count_reader ++
 			if ( buffer[i] == char_a ){
-				count++;
+				count_reader++;
 			}
-		//	if (i==3) exit(0);//TODO new
+			//if (i==3) exit(0);//TODO for creating SIGPIPE
 		}
 	}
 
-	//TODO delete 2 lines
+	//TODO for creating SIGINT manually
 	//printf("now you can SIGINT the program!!\n");
 	//sleep(SECONDS_TO_WAIT); 
 
@@ -77,7 +76,7 @@ int main(void){
 	}
 
 	// finish time
-	if (gettimeofday(&t2, NULL) <0){
+	if (gettimeofday(&t2_reader, NULL) <0){
 		printf("Error starting time: %s\n", strerror(errno));
 		close(fd);
 		exit(errno);
@@ -85,10 +84,10 @@ int main(void){
 	}
 	
 	// calculate elapsed time
-	elapsed_microsec = (t2.tv_sec - t1.tv_sec) * 1000.0;
-	elapsed_microsec += (t2.tv_usec - t1.tv_usec) * 1000.0;
+	elapsed_microsec = (t2_reader.tv_sec - t1_reader.tv_sec) * 1000.0;
+	elapsed_microsec += (t2_reader.tv_usec - t1_reader.tv_usec) * 1000.0;
 	
-	printf("%d were read in %f microseconds through FIFO\n", count, elapsed_microsec);
+	printf("%d were read in %f microseconds through FIFO\n", count_reader, elapsed_microsec);
 	
 	
 

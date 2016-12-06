@@ -19,6 +19,8 @@
 
 // Global variables:
 int fd; // create pipe file
+struct timeval t1_writer, t2_writer; // time measurment structure
+int counter_writer; // how many bytes did we red until now
 
 // headers:
 void pipe_handler(int);
@@ -26,9 +28,20 @@ void pipe_handler(int);
 // signal handler for sigpipe - exit gracefully + cleanup !
 void pipe_handler(int signal) {
 	if (signal == SIGPIPE) {
+		double elapsed_microsec_r;
+		double elapsed_microsec_w;
 		printf("Handling SIGPIPE and exiting program: %s\n", strerror(errno));
+		// PRINTING:	
+		// calculate writer:
+		if (gettimeofday(&t2_writer, NULL) <0){
+			printf("Error starting time: %s\n", strerror(errno));
+		}
+		elapsed_microsec_w = (t2_writer.tv_sec - t1_writer.tv_sec) * 1000.0;
+		elapsed_microsec_w += (t2_writer.tv_usec - t1_writer.tv_usec) * 1000.0;
+		printf("%d were written in %f microseconds through FIFO\n", counter_writer, elapsed_microsec_w);
+
+		// cleanup
 		close(fd);
-		//TODO print seconds + num of bytes written
 		if (unlink(FILEPATH) < 0)
 			printf("Error unlinking file from memory: %s\n", strerror(errno));
 		exit(0);
@@ -36,8 +49,6 @@ void pipe_handler(int signal) {
 }
 
 int main(int argc, char *argv[]){
-	//int fd; // create pipe file -- GLOBAL VAR
-	struct timeval t1, t2; // time measurment structure
 	double elapsed_microsec; // measurment
 	int i; // for loop index
 	int write_result; // result from write function
@@ -58,7 +69,7 @@ int main(int argc, char *argv[]){
 		printf("Error while defining SIGPIPE: %s\n", strerror(errno));
 		exit(errno);
 	}
-	//sleep(SECONDS_TO_WAIT);  //TODO delete!
+
 	if (argc != 2){ // check valid number of arguments
 		printf("Not enough arguments eneterd. Exiting...\n");
 		exit(-1);
@@ -81,7 +92,7 @@ int main(int argc, char *argv[]){
 	}
 	
 	// start time
-	if (gettimeofday(&t1, NULL) <0){
+	if (gettimeofday(&t1_writer, NULL) <0){
 		printf("Error starting time: %s\n", strerror(errno));
 		close(fd);
 		unlink(FILEPATH);
@@ -91,6 +102,7 @@ int main(int argc, char *argv[]){
 
 	bytesLeftToWrite = NUM;
 	toWrite = 0;
+	counter_writer = 0;
 	while ( bytesLeftToWrite > 0 ){
 		
 		if (bytesLeftToWrite<BUFF_SIZE){ // last buffer to write
@@ -111,6 +123,7 @@ int main(int argc, char *argv[]){
 		if (bytesLeftToWrite<BUFF_SIZE){ // last buffer to write
 			write_result = write(fd,last, 1);
 		}
+		counter_writer = counter_writer + toWrite;
 		
 	}
 		
@@ -124,7 +137,7 @@ int main(int argc, char *argv[]){
 
 
 	// finish time
-	if (gettimeofday(&t2, NULL) <0){
+	if (gettimeofday(&t2_writer, NULL) <0){
 		printf("Error starting time: %s\n", strerror(errno));
 		close(fd);
 		unlink(FILEPATH);
@@ -132,10 +145,10 @@ int main(int argc, char *argv[]){
 	}
 
 	// calculate elapsed time
-	elapsed_microsec = (t2.tv_sec - t1.tv_sec) * 1000.0;
-	elapsed_microsec += (t2.tv_usec - t1.tv_usec) * 1000.0;
+	elapsed_microsec = (t2_writer.tv_sec - t1_writer.tv_sec) * 1000.0;
+	elapsed_microsec += (t2_writer.tv_usec - t1_writer.tv_usec) * 1000.0;
 
-	printf("%d were written in %f microseconds through FIFO\n", NUM, elapsed_microsec);
+	printf("%d were written in %f microseconds through FIFO\n", counter_writer, elapsed_microsec);
 
 	close(fd);
 	if (unlink(FILEPATH) < 0){ 
