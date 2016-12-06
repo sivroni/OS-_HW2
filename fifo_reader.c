@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <signal.h>
+#include <sys/stat.h>
 
 #define FILEPATH "/tmp/osfifo" 
 #define char_a 'a'
@@ -29,6 +30,10 @@ int main(void){
 	char str_a [BYTE_SIZE]; // 'a' string
 	int read_result; // for read func - return value
 	int i;
+	int j;
+	int size;
+	int iterations;
+	struct stat fileStat; /*create stat to determine size */
 	sleep(SECONDS_TO_WAIT); // in order for fifo_writer to mkfifo!
 	
 	//signal(SIGINT, SIG_IGN); // ignore SIGTERM during operation
@@ -39,6 +44,13 @@ int main(void){
 		printf("Error opening file for reading: %s\n", strerror(errno));
 		exit(errno);
 	}
+	if ( stat(FILEPATH, &fileStat)<0 ){ /*check for error */
+		printf("Error while using fstat: %s\n", strerror(errno));
+		close(fd);
+		exit(errno); 
+	}
+	size = fileStat.st_size;
+	iterations = (size + ( BUFF_SIZE -1)) /BUFF_SIZE;
 
 	// start time
 	if (gettimeofday(&t1, NULL) <0){
@@ -57,6 +69,18 @@ int main(void){
 			}
 		}
 	}
+	
+/*	for (j=0; j< iterations; j++){
+		if ( (read_result = read(fd,buffer, BUFF_SIZE) ) > 0){
+			for (i = 0; i < read_result; i++){ // for each byte read - if its 'a' then count ++
+				if ( buffer[i] == char_a ){
+					count++;
+				}
+			}
+		}
+		else 
+			break;
+	}*/
 	count++; // for last NULL byte, not read
 
 	if (read_result < 0){ // didnt exit loop because of EOF - indicates error
