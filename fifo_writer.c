@@ -15,13 +15,16 @@
 #define PERMISSION 0600
 #define char_a 'a'
 #define END_BYTE '\0'
+#define BUFF_SIZE 2048
 
 int main(int argc, char *argv[]){
 	int fd; // create pipe file
 	struct timeval t1, t2; // time measurment structure
 	double elapsed_microsec; // measurment
 	int i; // for loop index
-
+	int write_result;
+	char buffer[BUFF_SIZE]; // string containing 'a'-s
+	int iterations;
 	//signal(SIGINT, SIG_IGN); // ignore SIGINT during operation
 
 	if (argc != 2){ // check valid number of arguments
@@ -32,12 +35,12 @@ int main(int argc, char *argv[]){
 	int NUM = atoi(argv[1]); // number of bytes to transfer
 
 	// create a size NUM buffer
-	char buffer [NUM];
+/*	char buffer [NUM];
 	for (i=0; i< NUM-1; i++){
 		buffer[i] = char_a;
 	}
 		
-	buffer[NUM-1] = END_BYTE;
+	buffer[NUM-1] = END_BYTE;*/
 	
 
 	//create pipe 
@@ -75,13 +78,30 @@ int main(int argc, char *argv[]){
 		}
    
 	}*/
+	int bytesLeftToWrite = NUM;
+	while ( bytesLeftToWrite > 0 ){
+		
+		for (i = 0; i < BUFF_SIZE; i++){ // // fill buffer with 'a'-s
+			buffer[i] = char_a;		
+		}
 
-	if ( write(fd, buffer, NUM) < 0 ){
+		if( (write_result = write(fd,buffer, BUFF_SIZE) ) > 0 ){
+			bytesLeftToWrite = bytesLeftToWrite - write_result;
+		}
+		else 
+			break;
+	}
+	buffer[write_result-1] = END_BYTE;
+
+// len = read
+//v counter +len = how much i succeed
+//
+/*	if ( write(fd, buffer, NUM) < 0 ){
 			printf("Error writing to pipe file: %s\n", strerror(errno));
 			close(fd);
 			unlink(FILEPATH);
 			exit(errno);
-		}
+		}*/
 
 	// finish time
 	if (gettimeofday(&t2, NULL) <0){
