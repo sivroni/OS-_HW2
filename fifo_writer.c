@@ -13,16 +13,14 @@
 
 #define FILEPATH "/tmp/osfifo" 
 #define PERMISSION 0600
-#define char_a "a"
-#define BYTE_SIZE 1
+#define char_a 'a'
+#define END_BYTE '\0'
 
 int main(int argc, char *argv[]){
-	printf("entered writer...\n");
 	int fd; // create pipe file
 	struct timeval t1, t2; // time measurment structure
 	double elapsed_microsec; // measurment
 	int i; // for loop index
-	char str_a [BYTE_SIZE]; // 'a' string
 
 	//signal(SIGINT, SIG_IGN); // ignore SIGINT during operation
 
@@ -33,7 +31,15 @@ int main(int argc, char *argv[]){
 
 	int NUM = atoi(argv[1]); // number of bytes to transfer
 
+	// create a size NUM buffer
+	char buffer [NUM];
+	for (i=0; i< NUM-1; i++){
+		buffer[i] = char_a;
+	}
+		
+	buffer[NUM-1] = END_BYTE;
 	
+
 	//create pipe 
 	if ( mkfifo(FILEPATH, PERMISSION) < 0){
 		printf("Error creating fifo file: %s\n", strerror(errno));
@@ -44,24 +50,22 @@ int main(int argc, char *argv[]){
 	fd = open(FILEPATH, O_WRONLY);
 	if (-1 == fd) {
 		printf("Error opening file for writing: %s\n", strerror(errno));
-		//TODO delete fifo?
 		unlink(FILEPATH);
 		exit(errno);
 	}
-	printf("opened file for writing...\n");
+	
 	// start time
 	if (gettimeofday(&t1, NULL) <0){
 		printf("Error starting time: %s\n", strerror(errno));
-		//TODO delete fifo?
 		close(fd);
 		unlink(FILEPATH);
 		exit(errno);
 	}
 
-	strcpy(str_a, char_a); 
 
+//TODO change to one write!!
 	// now write to the file as if it were memory 'a' X (NUM)
-	for (i = 0; i < NUM ; ++i) {
+/*	for (i = 0; i < NUM ; ++i) {
 		if ( write(fd, str_a, BYTE_SIZE) < 0 ){
 			printf("Error writing to pipe file: %s\n", strerror(errno));
 			//TODO delete fifo?
@@ -70,12 +74,18 @@ int main(int argc, char *argv[]){
 			exit(errno);
 		}
    
-	}
+	}*/
+
+	if ( write(fd, buffer, NUM) < 0 ){
+			printf("Error writing to pipe file: %s\n", strerror(errno));
+			close(fd);
+			unlink(FILEPATH);
+			exit(errno);
+		}
 
 	// finish time
 	if (gettimeofday(&t2, NULL) <0){
 		printf("Error starting time: %s\n", strerror(errno));
-		//TODO delete fifo?
 		close(fd);
 		unlink(FILEPATH);
 		exit(errno);
@@ -85,19 +95,18 @@ int main(int argc, char *argv[]){
 	elapsed_microsec = (t2.tv_sec - t1.tv_sec) * 1000.0;
 	elapsed_microsec += (t2.tv_usec - t1.tv_usec) * 1000.0;
 
-	printf("WRITER: Time elapsed is %f, and number of bytes written are: %d\n", elapsed_microsec, NUM);
+	printf("%d were written in %f microseconds through FIFO\n", NUM, elapsed_microsec);
 
 	close(fd);
 	if (unlink(FILEPATH) < 0){
 		printf("Error unlinking file from memory: %s\n", strerror(errno));
-		//TODO delete fifo?
 		close(fd);
 		exit(errno);
 	}
-	//TODO what to de during cleanup?
 	
 	//signal(SIGINT, SIG_DFL); // restore SIGINT in cleanup
-
+	
 	exit(0);
+
 }
 
