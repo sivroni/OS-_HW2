@@ -28,7 +28,6 @@ int main(int argc, char *argv[]) {
 		exit(-1);
 	}
 	
-	signal(SIGTERM, SIG_IGN); // ignore SIGTERM during operation
 
 	int NUM = atoi(argv[1]); // number of bytes to transfer
 	int RPID = atoi(argv[2]); // process id thats running mmap_reader
@@ -71,6 +70,10 @@ int main(int argc, char *argv[]) {
 		close(fd);
 		exit(errno);
   	}
+	//////TODO to check ignoring SIGTERM
+	//if (kill(RPID, SIGTERM) <0){
+		//printf("Error killing WITH SIGTERM: %s\n", strerror(errno));
+	//}
 
 	// start time
 	if (gettimeofday(&t1, NULL) <0){
@@ -116,8 +119,8 @@ int main(int argc, char *argv[]) {
 	elapsed_microsec = (t2.tv_sec - t1.tv_sec) * 1000.0;
 	elapsed_microsec += (t2.tv_usec - t1.tv_usec) * 1000.0;
 
-	printf("WRITER: Time elapsed is %f, and number of bytes written are: %d\n", elapsed_microsec, NUM);
-	signal(SIGTERM, SIG_DFL); // restore SIGTERM in cleanup
+	printf("%d were written in %f millisecond through MMAP\n", NUM, elapsed_microsec);
+
 	
 	exit(0);
 }
