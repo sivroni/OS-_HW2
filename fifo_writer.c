@@ -38,7 +38,7 @@ void pipe_handler(int signal) {
 		}
 		elapsed_microsec_w = (t2_writer.tv_sec - t1_writer.tv_sec) * 1000.0;
 		elapsed_microsec_w += (t2_writer.tv_usec - t1_writer.tv_usec) * 1000.0;
-		printf("%d were written in %f microseconds through FIFO\n", counter_writer, elapsed_microsec_w);
+		printf("%d were written in %f miliseconds through FIFO\n", counter_writer, elapsed_microsec_w);
 
 		// cleanup
 		close(fd);
@@ -148,7 +148,7 @@ int main(int argc, char *argv[]){
 	elapsed_microsec = (t2_writer.tv_sec - t1_writer.tv_sec) * 1000.0;
 	elapsed_microsec += (t2_writer.tv_usec - t1_writer.tv_usec) * 1000.0;
 
-	printf("%d were written in %f microseconds through FIFO\n", counter_writer, elapsed_microsec);
+	printf("%d were written in %f miliseconds through FIFO\n", counter_writer, elapsed_microsec);
 
 	close(fd);
 	if (unlink(FILEPATH) < 0){ 

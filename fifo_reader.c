@@ -87,7 +87,7 @@ int main(void){
 	elapsed_microsec = (t2_reader.tv_sec - t1_reader.tv_sec) * 1000.0;
 	elapsed_microsec += (t2_reader.tv_usec - t1_reader.tv_usec) * 1000.0;
 	
-	printf("%d were read in %f microseconds through FIFO\n", count_reader, elapsed_microsec);
+	printf("%d were read in %f miliseconds through FIFO\n", count_reader, elapsed_microsec);
 	
 	
 
