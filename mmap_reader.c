@@ -20,6 +20,9 @@
 #define SECONDS_TO_SLEEP 2
 // TODO  - what to do in case the writer fails?
 
+// Global variables:
+struct sigaction prev; // saves previous handlers  
+
 /////// headers: ////////
  void my_signal_handler (int);
 
@@ -121,8 +124,15 @@ void my_signal_handler (int signum) {
 			close(fd);
 			exit(errno);
 		}
-
+	
 		close(fd);
+		
+		// restore previous handlers
+		if (0 != sigaction(SIGTERM, &prev, NULL)) {
+		printf("Error while defining SIGTERM: %s\n", strerror(errno));
+		exit(errno);
+		}
+
 
 		exit(0);
 	} // end of ELSE 
@@ -137,7 +147,7 @@ int main (void){
 	// Structure to pass to the registration syscall - 
 	// used to change the action taken by a process on receipt of a specific signal
 	struct sigaction new_action; 
-	struct sigaction prev; 
+	//
 	// Assign pointer to our handler function
 	new_action.sa_handler = my_signal_handler;
 
@@ -160,10 +170,7 @@ int main (void){
 		sleep(SECONDS_TO_SLEEP);
 		
 	}
-	if (0 != sigaction(SIGTERM, &prev, NULL)) {
-		printf("Error while defining SIGTERM: %s\n", strerror(errno));
-		exit(errno);
-	}
+	
 
 	exit(0);
 }
