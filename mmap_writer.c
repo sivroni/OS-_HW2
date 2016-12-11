@@ -107,12 +107,11 @@ int main(int argc, char *argv[]) {
 	// don't forget to free the mmapped memory
 	// this also ensures the changes commit to the file
 
-	//TODO maybe we do need munmap?
-	/*if (-1 == munmap(ptr_to_map, NUM)) {
+	if (-1 == munmap(ptr_to_map, NUM)) {
 		printf("Error un-mmapping the file: %s\n", strerror(errno));
 		close(fd);
 		return -1;
-	}*/
+	}
 	close(fd);
 
 	// calculate elapsed time

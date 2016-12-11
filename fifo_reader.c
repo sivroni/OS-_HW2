@@ -14,7 +14,7 @@
 #define FILEPATH "/tmp/osfifo" 
 #define char_a 'a'
 #define PERMISSION 0600
-#define SECONDS_TO_WAIT 4
+#define SECONDS_TO_WAIT 2
 #define BUFF_SIZE 2048
 
 int main(void){
@@ -23,7 +23,6 @@ int main(void){
 	int count_reader; // count number of 'a' occurences
 	double elapsed_microsec; // measurment
 	char buffer[BUFF_SIZE]; // string containing 'a'-s
-	//int count; // count number of 'a' occurences
 	int read_result; // for read func - return value
 	int i;
 	struct sigaction sa, prev; // to handle SIGINT	
@@ -46,7 +45,7 @@ int main(void){
 		exit(errno);
 	}
 
-	printf("after 'reading'\n");
+	
 	// start time
 	if (gettimeofday(&t1_reader, NULL) <0){
 		printf("Error starting time: %s\n", strerror(errno));

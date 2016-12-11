@@ -30,7 +30,7 @@ void pipe_handler(int signal) {
 	if (signal == SIGPIPE) {
 		double elapsed_microsec_r;
 		double elapsed_microsec_w;
-		printf("Handling SIGPIPE and exiting program: %s\n", strerror(errno));
+		//printf("Handling SIGPIPE and exiting program: %s\n", strerror(errno));
 		// PRINTING:	
 		// calculate writer:
 		if (gettimeofday(&t2_writer, NULL) <0){
@@ -44,7 +44,7 @@ void pipe_handler(int signal) {
 		close(fd);
 		if (unlink(FILEPATH) < 0)
 			printf("Error unlinking file from memory: %s\n", strerror(errno));
-		exit(0);
+		exit(EXIT_FAILURE);
 	}
 }
 
@@ -57,7 +57,7 @@ int main(int argc, char *argv[]){
 	struct sigaction sa; // to handle SIGINT, SIGPIPE
 	int bytesLeftToWrite;
 	int toWrite; // how much to write in current iteration
-	printf("enters writer...\n");
+	
 	sa.sa_handler = pipe_handler;
 	// Signals - first entered here
 	if (sigaction(SIGINT, &sa, NULL) == -1) {
@@ -71,26 +71,36 @@ int main(int argc, char *argv[]){
 	}
 
 	if (argc != 2){ // check valid number of arguments
-		printf("Not enough arguments eneterd. Exiting...\n");
+		printf("Not enough arguments entered. Exiting...\n");
 		exit(-1);
 	}
 
 	int NUM = atoi(argv[1]); // number of bytes to transfer
 
-	//create pipe 
-	if ( mkfifo(FILEPATH, PERMISSION) < 0){
-		printf("Error creating fifo file: %s\n", strerror(errno));
-		exit(errno);
-	}
-	
 	// open file - writing only
-	fd = open(FILEPATH, O_WRONLY);
-	if (-1 == fd) {
-		printf("Error opening file for writing: %s\n", strerror(errno));
-		unlink(FILEPATH);
-		exit(errno);
+	fd = open(FILEPATH, O_WRONLY); // success if the file exsists (aka mkfifo already done)
+	if (fd < 0) { // need to mkfifo
+		
+		if ( mkfifo(FILEPATH, PERMISSION) < 0){
+			printf("Error creating fifo file: %s\n", strerror(errno));
+			exit(errno);
+			}
+		fd = open(FILEPATH, O_WRONLY);
+		if (-1 == fd) {
+			printf("Error opening file for writing: %s\n", strerror(errno));
+			unlink(FILEPATH);
+			exit(errno);
+		}
 	}
-	
+	else if (fd >= 0) {// if open succeed just define permissions
+		if (chmod(FILEPATH, PERMISSION) < 0){ // permission when mkfifo occured in this flow
+			printf("Error defining permissions: %s\n", strerror(errno));
+			close(fd);
+			unlink(FILEPATH);
+			exit(errno);
+		}
+	}
+
 	// start time
 	if (gettimeofday(&t1_writer, NULL) <0){
 		printf("Error starting time: %s\n", strerror(errno));

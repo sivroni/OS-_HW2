@@ -18,7 +18,6 @@
 #define PERMISSION 0600
 #define BYTE_OFFSET 0
 #define SECONDS_TO_SLEEP 2
-// TODO  - what to do in case the writer fails?
 
 // Global variables:
 struct sigaction prev; // saves previous handlers  
@@ -32,7 +31,7 @@ struct sigaction prev; // saves previous handlers
 // Simulate some processing and finish
 void my_signal_handler (int signum) {
 	if (signum == SIGTERM){	// ignoring SIGTERM
-		//printf("IGNORING SIGTERM\n"); //TODO delete
+		
 		}
 
 	else if (signum == SIGUSR1){
@@ -93,6 +92,30 @@ void my_signal_handler (int signum) {
 			if ( ptr_to_map[i] == char_a ){
 				count++;
 				i++;
+			}
+			
+			if (i > fileSize+1){ // there is no null terminator - exit with error
+				// finish time
+				if (gettimeofday(&t2, NULL) <0){
+					printf("Error starting time: %s\n", strerror(errno));
+				}
+
+				// calculate elapsed time
+				elapsed_microsec = (t2.tv_sec - t1.tv_sec) * 1000.0;
+				elapsed_microsec += (t2.tv_usec - t1.tv_usec) * 1000.0;
+
+				printf("%d were read in %f millisecond through MMAP\n", count, elapsed_microsec);
+			
+				if (unlink(FILEPATH) <0){
+					printf("Error unlinking file from memory: %s\n", strerror(errno));
+				}
+
+				if (-1 == munmap(ptr_to_map, fileSize)) {
+					printf("Error un-mmapping the file: %s\n", strerror(errno));
+				}
+			
+				close(fd);
+				exit(errno);
 			}
 		}
 		count++; // for NULL byte - terminator
@@ -171,7 +194,6 @@ int main (void){
 		
 	}
 	
-
 	exit(0);
 }
 
