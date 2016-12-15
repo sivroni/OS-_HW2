@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <signal.h>
+#include <limits.h> /* for INT_MIN, INT_MAX */
 
 #define FILEPATH "/tmp/mmapped.bin"
 #define PERMISSION 0600
@@ -22,16 +23,41 @@ int main(int argc, char *argv[]) {
 	struct timeval t1, t2; // time measurment structure
 	double elapsed_microsec; // measurment
 	int i; // for loop index
-	
+	long RPID;
+	char * ptr; // for strtol function
 	if (argc != 3){ // check valid number of arguments
 		printf("Not enough arguments eneterd. Exiting...\n");
 		exit(-1);
 	}
 	
 
-	int NUM = atoi(argv[1]); // number of bytes to transfer
-	int RPID = atoi(argv[2]); // process id thats running mmap_reader
-	
+	//int NUM = atoi(argv[1]); // number of bytes to transfer
+	// convert to NUM
+	errno = 0;
+	long NUM = strtol(argv[1], &ptr, 10);
+	if (errno != 0){
+		printf("Error converting NUM from string: %s\n", strerror(errno));
+		exit(errno);
+	}
+
+	//int RPID = atoi(argv[2]); // process id thats running mmap_reader
+	// convert to RPID
+	errno = 0;
+	long RPID_tmp = strtol(argv[2], &ptr, 10);
+	if (errno != 0){
+		printf("Error converting RPID from string: %s\n", strerror(errno));
+		exit(errno);
+	}
+	else { // convert from long to int
+		if (RPID_tmp >= INT_MIN && RPID_tmp <= INT_MAX) {
+    		RPID = RPID_tmp;
+		}
+		else {
+    		printf("Error converting RPID from long to int: %s\n", strerror(errno));
+			exit(-1);
+		}
+	}
+
 	// open file with permission 0600 = owner can read and write
 	fd = open(FILEPATH, O_RDWR | O_CREAT);
 	if (-1 == fd) {
@@ -118,7 +144,7 @@ int main(int argc, char *argv[]) {
 	elapsed_microsec = (t2.tv_sec - t1.tv_sec) * 1000.0;
 	elapsed_microsec += (t2.tv_usec - t1.tv_usec) * 1000.0;
 
-	printf("%d were written in %f millisecond through MMAP\n", NUM, elapsed_microsec);
+	printf("%ld were written in %f millisecond through MMAP\n", NUM, elapsed_microsec);
 
 	
 	exit(0);

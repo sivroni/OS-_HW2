@@ -20,7 +20,9 @@
 // Global variables:
 int fd; // create pipe file
 struct timeval t1_writer, t2_writer; // time measurment structure
-int counter_writer; // how many bytes did we red until now
+//int counter_writer; // how many bytes did we red until now
+long counter_writer; // how many bytes did we red until now
+
 
 // headers:
 void pipe_handler(int);
@@ -38,7 +40,7 @@ void pipe_handler(int signal) {
 		}
 		elapsed_microsec_w = (t2_writer.tv_sec - t1_writer.tv_sec) * 1000.0;
 		elapsed_microsec_w += (t2_writer.tv_usec - t1_writer.tv_usec) * 1000.0;
-		printf("%d were written in %f miliseconds through FIFO\n", counter_writer, elapsed_microsec_w);
+		printf("%ld were written in %f miliseconds through FIFO\n", counter_writer, elapsed_microsec_w);
 
 		// cleanup
 		close(fd);
@@ -51,13 +53,17 @@ void pipe_handler(int signal) {
 int main(int argc, char *argv[]){
 	double elapsed_microsec; // measurment
 	int i; // for loop index
-	int write_result; // result from write function
+	//int write_result; // result from write function
+	long write_result; // result from write function
 	char buffer[BUFF_SIZE]; // string to write in fd
 	char last[1] = END_BYTE; // last byte in fd
 	struct sigaction sa; // to handle SIGINT, SIGPIPE
-	int bytesLeftToWrite;
-	int toWrite; // how much to write in current iteration
-	
+	//int bytesLeftToWrite;
+	long bytesLeftToWrite;
+	//int toWrite; // how much to write in current iteration
+	long toWrite; // how much to write in current iteration
+	char * ptr;// for strtol function
+
 	sa.sa_handler = pipe_handler;
 	// Signals - first entered here
 	if (sigaction(SIGINT, &sa, NULL) == -1) {
@@ -75,24 +81,37 @@ int main(int argc, char *argv[]){
 		exit(-1);
 	}
 
-	int NUM = atoi(argv[1]); // number of bytes to transfer
+	//int NUM = atoi(argv[1]); // number of bytes to transfer
+
+	// convert to NUM
+	errno = 0;
+	long NUM = strtol(argv[1], &ptr, 10);
+	if (errno != 0){
+		printf("Error converting NUM from string: %s\n", strerror(errno));
+		exit(errno);
+	}
 
 	// open file - writing only
-	fd = open(FILEPATH, O_WRONLY); // success if the file exsists (aka mkfifo already done)
+	fd = open(FILEPATH, O_WRONLY | O_APPEND); // success if the file exsists (aka mkfifo already done)
 	if (fd < 0) { // need to mkfifo
-		
-		if ( mkfifo(FILEPATH, PERMISSION) < 0){
-			printf("Error creating fifo file: %s\n", strerror(errno));
-			exit(errno);
-			}
-		fd = open(FILEPATH, O_WRONLY);
-		if (-1 == fd) {
-			printf("Error opening file for writing: %s\n", strerror(errno));
-			unlink(FILEPATH);
+		if (errno != ENOENT){
+			printf("Error opening file: %s\n", strerror(errno));
 			exit(errno);
 		}
+		else {
+			if ( mkfifo(FILEPATH, PERMISSION) < 0){
+				printf("Error creating fifo file: %s\n", strerror(errno));
+				exit(errno);
+			}
+			fd = open(FILEPATH, O_WRONLY);
+			if ( fd < 0) {
+				printf("Error opening file for writing: %s\n", strerror(errno));
+				unlink(FILEPATH);
+				exit(errno);
+			}
+		}
 	}
-	else if (fd >= 0) {// if open succeed just define permissions
+	else  {// if open succeed just define permissions
 		if (chmod(FILEPATH, PERMISSION) < 0){ // permission when mkfifo occured in this flow
 			printf("Error defining permissions: %s\n", strerror(errno));
 			close(fd);
@@ -158,7 +177,7 @@ int main(int argc, char *argv[]){
 	elapsed_microsec = (t2_writer.tv_sec - t1_writer.tv_sec) * 1000.0;
 	elapsed_microsec += (t2_writer.tv_usec - t1_writer.tv_usec) * 1000.0;
 
-	printf("%d were written in %f miliseconds through FIFO\n", counter_writer, elapsed_microsec);
+	printf("%ld were written in %f miliseconds through FIFO\n", counter_writer, elapsed_microsec);
 
 	close(fd);
 	if (unlink(FILEPATH) < 0){ 
